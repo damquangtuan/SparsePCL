@@ -103,3 +103,4 @@ python trainer.py --logtostderr --batch_size=25 --env=HalfCheetah-v1 \
 
 
 Maintained by Ofir Nachum (ofirnachum).
+Updated by Tuan Dam
