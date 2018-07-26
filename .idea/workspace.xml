@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f9d17efa-16af-4e14-b231-9751714c45d1" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/objective.py" beforeDir="false" afterPath="$PROJECT_DIR$/objective.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/policy.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -27,26 +25,34 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="objective.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="objective.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/objective.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="317">
-              <caret line="374" column="51" lean-forward="true" selection-start-line="374" selection-start-column="51" selection-end-line="374" selection-end-column="51" />
+            <state relative-caret-position="272">
+              <caret line="366" column="15" selection-start-line="366" selection-start-column="6" selection-end-line="366" selection-end-column="15" />
               <folding>
                 <element signature="e#894#1868#0" />
                 <element signature="e#3462#6799#0" />
-                <element signature="e#6828#11158#0" />
                 <element signature="e#11188#13588#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="trainer.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="baseline.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/baseline.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="362">
+              <caret line="177" column="57" lean-forward="true" selection-start-line="177" selection-start-column="57" selection-end-line="177" selection-end-column="57" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="trainer.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/trainer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="258">
-              <caret line="360" column="29" lean-forward="true" selection-start-line="360" selection-start-column="29" selection-end-line="360" selection-end-column="29" />
+            <state relative-caret-position="448">
+              <caret line="322" column="55" selection-start-line="322" selection-start-column="55" selection-end-line="322" selection-end-column="55" />
             </state>
           </provider>
         </entry>
@@ -74,6 +80,7 @@
         <option value="$PROJECT_DIR$/policy.py" />
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/objective.py" />
+        <option value="$PROJECT_DIR$/trainer.py" />
       </list>
     </option>
   </component>
@@ -171,13 +178,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/trainer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="258">
-          <caret line="360" column="29" lean-forward="true" selection-start-line="360" selection-start-column="29" selection-end-line="360" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/policy.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="333">
@@ -198,16 +198,29 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/baseline.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="362">
+          <caret line="177" column="57" lean-forward="true" selection-start-line="177" selection-start-column="57" selection-end-line="177" selection-end-column="57" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/objective.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="317">
-          <caret line="374" column="51" lean-forward="true" selection-start-line="374" selection-start-column="51" selection-end-line="374" selection-end-column="51" />
+        <state relative-caret-position="272">
+          <caret line="366" column="15" selection-start-line="366" selection-start-column="6" selection-end-line="366" selection-end-column="15" />
           <folding>
             <element signature="e#894#1868#0" />
             <element signature="e#3462#6799#0" />
-            <element signature="e#6828#11158#0" />
             <element signature="e#11188#13588#0" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/trainer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="448">
+          <caret line="322" column="55" selection-start-line="322" selection-start-column="55" selection-end-line="322" selection-end-column="55" />
         </state>
       </provider>
     </entry>

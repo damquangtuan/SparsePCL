@@ -66,7 +66,7 @@ flags.DEFINE_string('sample_from', 'online',
                     'Sample actions from "online" network or "target" network')
 
 flags.DEFINE_string('objective', 'pcl',
-                    'pcl/upcl/a3c/trpo/reinforce/urex')
+                    'pcl/upcl/a3c/trpo/reinforce/urex/tsallis')
 flags.DEFINE_bool('trust_region_p', False,
                   'use trust region for policy optimization')
 flags.DEFINE_string('value_opt', None,
@@ -244,6 +244,7 @@ class Trainer(object):
     if self.objective in ['pcl', 'a3c', 'trpo', 'upcl']:
       cls = (objective.PCL if self.objective in ['pcl', 'upcl'] else
              objective.TRPO if self.objective == 'trpo' else
+             objective.SparsePCL if self.objective == 'tsallis' else
              objective.ActorCritic)
       policy_weight = 1.0
 
@@ -319,7 +320,7 @@ class Trainer(object):
     if self.replay_buffer_freq <= 0:
       return None
     else:
-      assert self.objective in ['pcl', 'upcl'], 'Can\'t use replay buffer with %s' % (
+      assert self.objective in ['pcl', 'upcl', 'tsallis'], 'Can\'t use replay buffer with %s' % (
           self.objective)
     cls = replay_buffer.PrioritizedReplayBuffer
     return cls(self.replay_buffer_size,
