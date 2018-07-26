@@ -106,12 +106,36 @@ class Policy(object):
 
     return output, next_state
 
+  def spmax_tau(logits):
+    batch_size = tf.shape(logits)[0]
+    num_actions = tf.shape(logits)[1]
+
+    z = logits
+
+    z_sorted, _ = tf.nn.top_k(z, k=num_actions)
+
+    z_cumsum = tf.cumsum(z_sorted, axis=1)
+    k = tf.range(1, tf.cast(num_actions, logits.dtype) + 1, dtype=logits.dtype)
+    z_check = 1 + k * z_sorted > z_cumsum
+
+    k_z = tf.reduce_sum(tf.cast(z_check, tf.int32), axis=1)
+
+    indices = tf.stack([tf.range(0, batch_size), k_z - 1], axis=1)
+    tau_sum = tf.gather_nd(z_cumsum, indices)
+    tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
+
+    return tau_z
+
   def sample_action(self, logits, sampling_dim,
                     act_dim, act_type, greedy=False):
     """Sample an action from a distribution."""
     if self.env_spec.is_discrete(act_type):
       if greedy:
         act = tf.argmax(logits, 1)
+      elif self.tsallis:
+        probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1))
+        dist = tf.distributions.Categorical(probs=probs)
+        act = dist.sample([])
       else:
         act = tf.reshape(tf.multinomial(logits, 1), [-1])
     elif self.env_spec.is_box(act_type):
@@ -175,7 +199,12 @@ class Policy(object):
                       sampling_dim, act_dim, act_type):
     """Calculate log-prob of action sampled from distribution."""
     if self.env_spec.is_discrete(act_type):
-      act_log_prob = tf.reduce_sum(
+      if self.tsallis:
+        probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1))
+        act_log_prob = tf.reduce_sum(
+          tf.one_hot(action, act_dim) * tf.log(1e-6 + probs), -1)
+      else:
+        act_log_prob = tf.reduce_sum(
           tf.one_hot(action, act_dim) * tf.nn.log_softmax(logits), -1)
     elif self.env_spec.is_box(act_type):
       means = logits[:, :sampling_dim / 2]
