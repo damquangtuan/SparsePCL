@@ -470,3 +470,17 @@ class SparsePCL(PCL):
 
         gradient_ops = self.training_ops(
             loss, learning_rate=self.learning_rate)
+
+        tf.summary.histogram('log_probs', tf.reduce_sum(log_probs, 0))
+        tf.summary.histogram('rewards', tf.reduce_sum(rewards, 0))
+        tf.summary.scalar('avg_rewards',
+                          tf.reduce_mean(tf.reduce_sum(rewards, 0)))
+        tf.summary.scalar('policy_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('critic_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('raw_loss', raw_loss)
+
+        return (loss, raw_loss, future_values,
+                gradient_ops, tf.summary.merge_all())
