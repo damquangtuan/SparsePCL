@@ -5,12 +5,16 @@ Ofir Nachum, Mohammad Norouzi, and Dale Schuurmans.
 Ofir Nachum, Mohammad Norouzi, Kelvin Xu, and Dale Schuurmans.
 * "Trust-PCL: An Off-Policy Trust Region Method for Continuous Control" by
 Ofir Nachum, Mohammad Norouzi, Kelvin Xu, and Dale Schuurmans.
+* "Path Consistency Learning in Tsallis Entropy Regularized MDPs"
+Ofir Nachum, Yinlam Chow, Mohamamd Ghavamzadeh
 
 Available algorithms:
 * Actor Critic
 * TRPO
 * PCL
 * Unified PCL
+* SparsePCL
+* Unified SparsePCL
 * Trust-PCL
 * PCL + Constraint Trust Region (un-published)
 * REINFORCE
@@ -109,4 +113,5 @@ python trainer.py --logtostderr --batch_size=25 --env=HalfCheetah-v1 \
 
 
 Maintained by Ofir Nachum (ofirnachum).
-Updated by Tuan Dam
+
+Updated by Tuan Dam.
