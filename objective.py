@@ -96,6 +96,26 @@ def shift_values(values, discount, rollout, final_values=0.0):
                     final_pad], 0)
 
 
+def spmax_tau(logits):
+    batch_size = tf.shape(logits)[0]
+    num_actions = tf.shape(logits)[1]
+
+    z = logits
+
+    z_sorted, _ = tf.nn.top_k(z, k=num_actions)
+
+    z_cumsum = tf.cumsum(z_sorted, axis=1)
+    k = tf.range(1, tf.cast(num_actions, logits.dtype) + 1, dtype=logits.dtype)
+    z_check = 1 + k * z_sorted > z_cumsum
+
+    k_z = tf.reduce_sum(tf.cast(z_check, tf.int32), axis=1)
+
+    indices = tf.stack([tf.range(0, batch_size), k_z - 1], axis=1)
+    tau_sum = tf.gather_nd(z_cumsum, indices)
+    tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
+
+    return tau_z
+
 class ActorCritic(Objective):
   """Standard Actor-Critic."""
 
@@ -366,26 +386,6 @@ class TRPO(ActorCritic):
 
 class SparsePCL(PCL):
 
-    def spmax_tau(logits):
-        batch_size = tf.shape(logits)[0]
-        num_actions = tf.shape(logits)[1]
-
-        z = logits
-
-        z_sorted, _ = tf.nn.top_k(z, k=num_actions)
-
-        z_cumsum = tf.cumsum(z_sorted, axis=1)
-        k = tf.range(1, tf.cast(num_actions, logits.dtype) + 1, dtype=logits.dtype)
-        z_check = 1 + k * z_sorted > z_cumsum
-
-        k_z = tf.reduce_sum(tf.cast(z_check, tf.int32), axis=1)
-
-        indices = tf.stack([tf.range(0, batch_size), k_z - 1], axis=1)
-        tau_sum = tf.gather_nd(z_cumsum, indices)
-        tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
-
-        return tau_z
-
     def get(self, rewards, pads, values, log_probs, prev_log_probs,
             entropies, logits, actions=None):
         assert len(logits) == 1, 'only one discrete action allowed'
@@ -473,6 +473,9 @@ class SparsePCL(PCL):
 
         tf.summary.histogram('log_probs', tf.reduce_sum(log_probs, 0))
         tf.summary.histogram('rewards', tf.reduce_sum(rewards, 0))
+        tf.summary.histogram('future_values', future_values)
+        tf.summary.histogram('baseline_values', baseline_values)
+        tf.summary.histogram('advantages', adv)
         tf.summary.scalar('avg_rewards',
                           tf.reduce_mean(tf.reduce_sum(rewards, 0)))
         tf.summary.scalar('policy_loss',
@@ -480,7 +483,8 @@ class SparsePCL(PCL):
         tf.summary.scalar('critic_loss',
                           tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
         tf.summary.scalar('loss', loss)
-        tf.summary.scalar('raw_loss', raw_loss)
+        tf.summary.scalar('raw_loss', tf.reduce_mean(raw_loss))
+        tf.summary.scalar('eps_lambda', self.eps_lambda)
 
         return (loss, raw_loss, future_values,
                 gradient_ops, tf.summary.merge_all())

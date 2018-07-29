@@ -23,6 +23,26 @@ import tensorflow as tf
 import numpy as np
 
 
+def spmax_tau(logits):
+  batch_size = tf.shape(logits)[0]
+  num_actions = tf.shape(logits)[1]
+
+  z = logits
+
+  z_sorted, _ = tf.nn.top_k(z, k=num_actions)
+
+  z_cumsum = tf.cumsum(z_sorted, axis=1)
+  k = tf.range(1, tf.cast(num_actions, logits.dtype) + 1, dtype=logits.dtype)
+  z_check = 1 + k * z_sorted > z_cumsum
+
+  k_z = tf.reduce_sum(tf.cast(z_check, tf.int32), axis=1)
+
+  indices = tf.stack([tf.range(0, batch_size), k_z - 1], axis=1)
+  tau_sum = tf.gather_nd(z_cumsum, indices)
+  tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
+
+  return tau_z
+
 class Policy(object):
   def __init__(self, env_spec, internal_dim,
                fixed_std=True, recurrent=True,
@@ -105,26 +125,6 @@ class Policy(object):
     output, next_state = cell(cell_input, prev_internal_state)
 
     return output, next_state
-
-  def spmax_tau(logits):
-    batch_size = tf.shape(logits)[0]
-    num_actions = tf.shape(logits)[1]
-
-    z = logits
-
-    z_sorted, _ = tf.nn.top_k(z, k=num_actions)
-
-    z_cumsum = tf.cumsum(z_sorted, axis=1)
-    k = tf.range(1, tf.cast(num_actions, logits.dtype) + 1, dtype=logits.dtype)
-    z_check = 1 + k * z_sorted > z_cumsum
-
-    k_z = tf.reduce_sum(tf.cast(z_check, tf.int32), axis=1)
-
-    indices = tf.stack([tf.range(0, batch_size), k_z - 1], axis=1)
-    tau_sum = tf.gather_nd(z_cumsum, indices)
-    tau_z = (tau_sum - 1) / tf.cast(k_z, logits.dtype)
-
-    return tau_z
 
   def sample_action(self, logits, sampling_dim,
                     act_dim, act_type, greedy=False):
