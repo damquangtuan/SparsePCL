@@ -152,10 +152,20 @@ class Baseline(object):
         inputs = tf.nn.tanh(tf.matmul(inputs, w))
         input_dim = self.hidden_dim
 
-    w_v = tf.get_variable('w_v', [input_dim, 1],
+    w_v = tf.get_variable('w_v', [input_dim, 1, 3],
                           initializer=self.matrix_init)
-    values = tf.matmul(inputs, w_v)
-    values = tf.reshape(values, [time_length, batch_size])
+    values_pcl = tf.matmul(inputs, w_v[:,:,0])
+    values_pcl = tf.reshape(values_pcl, [time_length, batch_size])
+
+    values_lambda = tf.matmul(inputs, w_v[:,:,1])
+    values_lambda = tf.reshape(values_lambda, [time_length, batch_size])
+
+    values_L = tf.matmul(inputs, w_v[:,:,2])
+    values_L = tf.reshape(values_L, [time_length, batch_size])
+
+    values = [tf.transpose(values_pcl), tf.transpose(values_lambda), tf.transpose(values_L)]
+
+    values = tf.transpose(values)
 
     inputs = inputs[:-batch_size]  # remove "final vals"
     return values, inputs, w_v

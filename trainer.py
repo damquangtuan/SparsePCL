@@ -69,6 +69,10 @@ flags.DEFINE_string('objective', 'pcl',
                     'pcl/upcl/a3c/trpo/reinforce/urex/tsallis')
 flags.DEFINE_bool('trust_region_p', False,
                   'use trust region for policy optimization')
+
+flags.DEFINE_bool('tsallis', False,
+                  'use sparse tsallis entropy')
+
 flags.DEFINE_string('value_opt', None,
                     'leave as None to optimize it along with policy '
                     '(using critic_weight). Otherwise set to '
@@ -172,6 +176,9 @@ class Trainer(object):
 
     self.critic_weight = FLAGS.critic_weight
     self.objective = FLAGS.objective
+
+    self.tsallis = FLAGS.tsallis
+
     self.trust_region_p = FLAGS.trust_region_p
     self.value_opt = FLAGS.value_opt
     assert not self.trust_region_p or self.objective in ['pcl', 'trpo']
@@ -241,7 +248,7 @@ class Trainer(object):
               self.tau_start, self.global_step, 100, self.tau_decay),
           self.tau)
 
-    if self.objective in ['pcl', 'a3c', 'trpo', 'upcl']:
+    if self.objective in ['pcl', 'a3c', 'trpo', 'upcl', 'tsallis']:
       cls = (objective.PCL if self.objective in ['pcl', 'upcl'] else
              objective.TRPO if self.objective == 'trpo' else
              objective.SparsePCL if self.objective == 'tsallis' else
@@ -274,7 +281,7 @@ class Trainer(object):
     return cls(self.env_spec, self.internal_dim,
                fixed_std=self.fixed_std,
                recurrent=self.recurrent,
-               input_prev_actions=self.input_prev_actions)
+               input_prev_actions=self.input_prev_actions, tsallis=self.tsallis)
 
   def get_baseline(self):
     cls = (baseline.UnifiedBaseline if self.objective == 'upcl' else

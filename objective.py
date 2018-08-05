@@ -47,7 +47,7 @@ class Objective(object):
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,
           entropies, logits,
-          target_values, final_target_values):
+          target_values, final_target_values, actions=None):
     """Get objective calculations."""
     raise NotImplementedError()
 
@@ -143,13 +143,13 @@ class ActorCritic(Objective):
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,
           entropies, logits,
-          target_values, final_target_values):
+          target_values, final_target_values, actions=None):
     not_pad = 1 - pads
     batch_size = tf.shape(rewards)[1]
 
     entropy = not_pad * sum(entropies)
     rewards = not_pad * rewards
-    value_estimates = not_pad * values
+    value_estimates = not_pad * values[:, :, 0]
     log_probs = not_pad * sum(log_probs)
     target_values = not_pad * tf.stop_gradient(target_values)
     final_target_values = tf.stop_gradient(final_target_values)
@@ -216,12 +216,12 @@ class PCL(ActorCritic):
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,
           entropies, logits,
-          target_values, final_target_values):
+          target_values, final_target_values, actions=None):
     not_pad = 1 - pads
     batch_size = tf.shape(rewards)[1]
 
     rewards = not_pad * rewards
-    value_estimates = not_pad * values
+    value_estimates = not_pad * values[:, :, 0]
     log_probs = not_pad * sum(log_probs)
     target_log_probs = not_pad * tf.stop_gradient(sum(target_log_probs))
     relative_log_probs = not_pad * (log_probs - target_log_probs)
@@ -320,12 +320,12 @@ class TRPO(ActorCritic):
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,
           entropies, logits,
-          target_values, final_target_values):
+          target_values, final_target_values, actions=None):
     not_pad = 1 - pads
     batch_size = tf.shape(rewards)[1]
 
     rewards = not_pad * rewards
-    value_estimates = not_pad * values
+    value_estimates = not_pad * values[:, :, 0]
     log_probs = not_pad * sum(log_probs)
     prev_log_probs = not_pad * prev_log_probs
     target_values = not_pad * tf.stop_gradient(target_values)
@@ -386,8 +386,10 @@ class TRPO(ActorCritic):
 
 class SparsePCL(PCL):
 
-    def get(self, rewards, pads, values, log_probs, prev_log_probs,
-            entropies, logits, actions=None):
+    def get(self, rewards, pads, values, final_values,
+            log_probs, prev_log_probs, target_log_probs,
+            entropies, logits,
+            target_values, final_target_values, actions=None):
         assert len(logits) == 1, 'only one discrete action allowed'
         assert actions is not None
 

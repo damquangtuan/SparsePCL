@@ -182,11 +182,12 @@ class Model(object):
         (self.loss, self.raw_loss, self.regression_target,
          self.gradient_ops, self.summary) = self.objective.get(
             self.rewards, self.pads,
-            self.values[:-1, :],
-            self.values[-1, :] * (1 - self.terminated),
+            self.values[:-1, :, :],
+            self.values[-1, :, 0] * (1 - self.terminated),
             self.log_probs, self.prev_log_probs, self.target_log_probs,
-            self.entropies, self.logits, self.target_values[:-1, :],
-            self.target_values[-1, :] * (1 - self.terminated))
+            self.entropies, self.logits, self.target_values[:-1, :, 0],
+            self.target_values[-1, :, 0] * (1 - self.terminated),
+            self.actions[0])
 
         self.regression_target = tf.reshape(self.regression_target, [-1])
 
@@ -213,7 +214,7 @@ class Model(object):
           with tf.variable_scope('trust_region_value', reuse=None):
             self.value_opt.setup(
                 self.value_vars,
-                tf.reshape(self.values[:-1, :], [-1]),
+                tf.reshape(self.values[:-1, :, 0], [-1]),
                 self.regression_target,
                 tf.reshape(self.pads, [-1]),
                 self.regression_input, self.regression_weight)

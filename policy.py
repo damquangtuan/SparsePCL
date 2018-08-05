@@ -46,7 +46,7 @@ def spmax_tau(logits):
 class Policy(object):
   def __init__(self, env_spec, internal_dim,
                fixed_std=True, recurrent=True,
-               input_prev_actions=True):
+               input_prev_actions=True, tsallis=False):
     self.env_spec = env_spec
     self.internal_dim = internal_dim
     self.rnn_state_dim = self.internal_dim
@@ -56,6 +56,7 @@ class Policy(object):
 
     self.matrix_init = tf.truncated_normal_initializer(stddev=0.01)
     self.vector_init = tf.constant_initializer(0.0)
+    self.tsallis = tsallis
 
   @property
   def input_dim(self):
