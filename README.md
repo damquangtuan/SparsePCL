@@ -64,7 +64,10 @@ python trainer.py --logtostderr --batch_size=400 --env=DuplicatedInput-v0 \
 Run SparsePCL on a simple environment:
 
 ```
-python trainer.py --logtostderr --batch_size=400 --env=DuplicatedInput-v0 --validation_frequency=25 --tau=0.025 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=tsallis --learning_rate=0.01
+python trainer.py --logtostderr --batch_size=400 --env=DuplicatedInput-v0 \
+--validation_frequency=25 --tau=0.025 --rollout=10 --critic_weight=1.0 \
+--gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=tsallis \
+--learning_rate=0.01
 ```
 
 Run Mujoco task with TRPO:

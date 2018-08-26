@@ -402,7 +402,7 @@ class Trainer(object):
         sess = sv.PrepareSession(FLAGS.master)
     else:
       tf.set_random_seed(FLAGS.tf_seed)
-      self.global_step = tf.contrib.framework.get_or_create_global_step()
+      self.global_step = tf.train.get_or_create_global_step()
       self.controller = self.get_controller(self.env)
       self.model = self.controller.model
       self.controller.setup()
@@ -412,7 +412,12 @@ class Trainer(object):
 
       saver = tf.train.Saver(max_to_keep=10)
       sess = tf.Session()
-      sess.run(tf.initialize_all_variables())
+
+      # from tensorflow.python import debug as tf_debug
+	  #
+      # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+
+      sess.run(tf.global_variables_initializer())
       init_fn(sess, saver)
 
     self.sv = sv
