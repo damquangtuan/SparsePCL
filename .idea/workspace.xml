@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f9d17efa-16af-4e14-b231-9751714c45d1" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/objective.py" beforeDir="false" afterPath="$PROJECT_DIR$/objective.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/policy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/trainer.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -39,8 +35,8 @@
       <file leaf-file-name="objective.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/objective.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="378">
-              <caret line="413" column="41" lean-forward="true" selection-start-line="413" selection-start-column="41" selection-end-line="413" selection-end-column="41" />
+            <state relative-caret-position="370">
+              <caret line="413" lean-forward="true" selection-start-line="413" selection-end-line="413" />
               <folding>
                 <element signature="e#822#845#0" expanded="true" />
                 <element signature="e#4064#7424#0" />
@@ -72,8 +68,8 @@
       <file leaf-file-name="model.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/model.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="157">
-              <caret line="122" selection-start-line="122" selection-end-line="122" selection-end-column="30" />
+            <state relative-caret-position="389">
+              <caret line="189" column="12" lean-forward="true" selection-start-line="189" selection-start-column="12" selection-end-line="189" selection-end-column="31" />
             </state>
           </provider>
         </entry>
@@ -148,8 +144,8 @@
       <find>single_step</find>
       <find>multi</find>
       <find>tsallis</find>
-      <find>self.rollout - 1, batch_size</find>
       <find>object</find>
+      <find>self.rollout - 1, batch_size</find>
       <find>multi_step</find>
     </findStrings>
     <dirStrings>
@@ -165,8 +161,8 @@
         <option value="$PROJECT_DIR$/baseline.py" />
         <option value="$PROJECT_DIR$/trainer.py" />
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/model.py" />
         <option value="$PROJECT_DIR$/policy.py" />
+        <option value="$PROJECT_DIR$/model.py" />
         <option value="$PROJECT_DIR$/objective.py" />
       </list>
     </option>
@@ -632,15 +628,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/model.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="157">
-          <caret line="122" selection-start-line="122" selection-end-line="122" selection-end-column="30" />
+        <state relative-caret-position="389">
+          <caret line="189" column="12" lean-forward="true" selection-start-line="189" selection-start-column="12" selection-end-line="189" selection-end-column="31" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/objective.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="413" column="41" lean-forward="true" selection-start-line="413" selection-start-column="41" selection-end-line="413" selection-end-column="41" />
+        <state relative-caret-position="370">
+          <caret line="413" lean-forward="true" selection-start-line="413" selection-end-line="413" />
           <folding>
             <element signature="e#822#845#0" expanded="true" />
             <element signature="e#4064#7424#0" />

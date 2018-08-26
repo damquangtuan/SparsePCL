@@ -408,34 +408,17 @@ class SparsePCL(PCL):
         logits = logits[0][:-1]
         # logits = [logit[:-1] for logit in logits] #logits[:-1]  # [:-1]
 
-        print('logits before TUANNNNN!!!', logits)
-
-        print('actions TUANNNN', actions)
-        print('not_pad TUANNNN', not_pad)
-
-
-
         tau_logits = tf.reshape(
             spmax_tau(tf.reshape(logits, [time_length * batch_size, -1])),
             [time_length, batch_size, 1])
-
-        # tmp = tf.nn.relu(logits - tau_logits) * tf.one_hot(actions, num_actions)
 
         pi_probs = not_pad * tf.reduce_sum(
             tf.nn.relu(logits - tau_logits) * tf.one_hot(actions, num_actions),
             -1)
 
-        print('tau_logits TUANNNNN!!!', tau_logits)
-        print('logits after TUANNNNN!!!', logits)
-        print('pi_probs TUANNNNN!!!', pi_probs)
-
-
         lambdas = not_pad * tf.reduce_sum(
             tf.nn.relu(tau_logits - logits) * tf.one_hot(actions, num_actions),
             -1)
-
-        # lambdas = tf.squeeze(lambdas, axis=[0])
-
 
         Lambdas = Lambda_sigmoid * (-self.tau / 2)
 

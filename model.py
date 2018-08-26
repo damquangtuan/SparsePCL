@@ -187,7 +187,7 @@ class Model(object):
             self.log_probs, self.prev_log_probs, self.target_log_probs,
             self.entropies, self.logits, self.target_values[:-1, :, 0],
             self.target_values[-1, :, 0] * (1 - self.terminated),
-            self.actions[0])
+            self.actions[0][1:])
 
         self.regression_target = tf.reshape(self.regression_target, [-1])
 
