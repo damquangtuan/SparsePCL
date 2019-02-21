@@ -123,7 +123,7 @@ class ActorCritic(Objective):
                policy_weight=1.0, critic_weight=0.1,
                tau=0.1, gamma=1.0, rollout=10,
                eps_lambda=0.0, clip_adv=None,
-               use_target_values=False):
+               use_target_values=False,q=2.0,k=0.5):
     super(ActorCritic, self).__init__(learning_rate, clip_norm=clip_norm)
     self.policy_weight = policy_weight
     self.critic_weight = critic_weight
@@ -139,6 +139,8 @@ class ActorCritic(Objective):
     self.assign_eps_lambda = self.eps_lambda.assign(
         0.99 * self.eps_lambda + 0.01 * self.new_eps_lambda)
     self.use_target_values = use_target_values
+    self.q = q
+    self.k = k
 
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,
@@ -462,6 +464,259 @@ class SparsePCL(PCL):
         raw_adv = adv
 
         policy_loss = -adv * (sum_pi_probs - sum_lambdas + sum_Lambdas)
+        critic_loss = -adv * (baseline_values - last_values)
+
+        policy_loss = tf.reduce_mean(
+            tf.reduce_sum(policy_loss * not_pad, 0))
+        critic_loss = tf.reduce_mean(
+            tf.reduce_sum(critic_loss * not_pad, 0))
+
+        # loss for gradient calculation
+        loss = (self.policy_weight * policy_loss +
+                self.critic_weight * critic_loss)
+
+        # actual quantity we're trying to minimize
+        raw_loss = tf.reduce_mean(
+            tf.reduce_sum(not_pad * adv * (-baseline_values + future_values), 0))
+
+        gradient_ops = self.training_ops(
+            loss, learning_rate=self.learning_rate)
+
+        tf.summary.histogram('log_probs', tf.reduce_sum(log_probs, 0))
+        tf.summary.histogram('rewards', tf.reduce_sum(rewards, 0))
+        tf.summary.histogram('future_values', future_values)
+        tf.summary.histogram('baseline_values', baseline_values)
+        tf.summary.histogram('advantages', adv)
+        tf.summary.scalar('avg_rewards',
+                          tf.reduce_mean(tf.reduce_sum(rewards, 0)))
+        tf.summary.scalar('policy_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('critic_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('raw_loss', tf.reduce_mean(raw_loss))
+        tf.summary.scalar('eps_lambda', self.eps_lambda)
+
+        return (loss, raw_loss, future_values,
+                gradient_ops, tf.summary.merge_all())
+
+class GeneralSparsePCL(PCL):
+
+    def get(self, rewards, pads, values, final_values,
+            log_probs, prev_log_probs, target_log_probs,
+            entropies, logits,
+            target_values, final_target_values, actions=None):
+        assert len(logits) == 1, 'only one discrete action allowed'
+        assert actions is not None
+
+        not_pad = 1 - pads
+        time_length = tf.shape(rewards)[0]
+        batch_size = tf.shape(rewards)[1]
+        num_actions = tf.shape(logits[0])[2]
+
+        rewards = not_pad * rewards
+        value_estimates = not_pad * values[:, :, 0]
+        lambda_coefs = tf.exp(1.0 * not_pad * values[:, :, 1])
+        Lambda_sigmoid = not_pad * tf.sigmoid(values[:, :, 2])
+
+        #remove final computation
+
+        logits = logits[0][:-1]#/(self.k * self.q)
+        # logits = logits[0][:-1]
+
+        # logits = [logit[:-1] for logit in logits] #logits[:-1]  # [:-1]
+
+        tau_logits = tf.reshape(
+            spmax_tau(tf.reshape(logits, [time_length * batch_size, -1])),
+            [time_length, batch_size, 1])
+
+        pi_probs = not_pad * tf.reduce_sum(
+            tf.nn.relu(logits - tau_logits) * tf.one_hot(actions, num_actions),
+            -1)
+
+        pi_probs = tf.pow(pi_probs, (self.q - 1))
+
+        lambdas = not_pad * tf.reduce_sum(
+            tf.nn.relu(tau_logits - logits) * tf.one_hot(actions, num_actions),
+            -1)
+
+        Lambdas = Lambda_sigmoid * (-self.tau * self.k/(self.q - 1))
+
+        # Prepend.
+        not_pad = tf.concat([tf.ones([self.rollout - 1, batch_size]),
+                             not_pad], 0)
+        rewards = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             rewards], 0)
+        value_estimates = tf.concat(
+            [self.gamma ** tf.expand_dims(
+                tf.range(float(self.rollout - 1), 0, -1), 1) *
+             tf.ones([self.rollout - 1, batch_size]) *
+             value_estimates[0:1, :],
+             value_estimates], 0)
+        lambda_coefs = tf.concat(
+            [tf.ones([self.rollout - 1, batch_size]),
+             lambda_coefs], 0)
+        pi_probs = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                              pi_probs], 0)
+        lambdas = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             lambdas], 0)
+        Lambdas = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             Lambdas], 0)
+
+        sum_rewards = discounted_future_sum(rewards + self.k * self.tau / (self.q - 1), self.gamma, self.rollout)
+        sum_pi_probs = discounted_future_sum(pi_probs, self.gamma * (1 / (self.q - 1)), self.rollout)
+        sum_lambdas = discounted_future_sum(lambdas * lambda_coefs, self.gamma, self.rollout)
+        sum_Lambdas = discounted_future_sum(Lambdas, self.gamma, self.rollout)
+
+        # last_values = tf.stop_gradient(shift_values(value_estimates, self.gamma, self.rollout))
+        last_values = shift_values(value_estimates, self.gamma, self.rollout)
+
+        future_values = (
+                - self.tau * sum_pi_probs
+                + self.tau * sum_lambdas
+                - sum_Lambdas
+                + sum_rewards + last_values)
+        baseline_values = value_estimates
+
+        adv = tf.stop_gradient(-baseline_values + future_values)
+        raw_adv = adv
+
+        policy_loss = -adv * (sum_pi_probs - sum_lambdas + sum_Lambdas)
+        critic_loss = -adv * (baseline_values - last_values)
+
+        policy_loss = tf.reduce_mean(
+            tf.reduce_sum(policy_loss * not_pad, 0))
+        critic_loss = tf.reduce_mean(
+            tf.reduce_sum(critic_loss * not_pad, 0))
+
+        # loss for gradient calculation
+        loss = (self.policy_weight * policy_loss +
+                self.critic_weight * critic_loss)
+
+        # actual quantity we're trying to minimize
+        raw_loss = tf.reduce_mean(
+            tf.reduce_sum(not_pad * adv * (-baseline_values + future_values), 0))
+
+        gradient_ops = self.training_ops(
+            loss, learning_rate=self.learning_rate)
+
+        tf.summary.histogram('log_probs', tf.reduce_sum(log_probs, 0))
+        tf.summary.histogram('rewards', tf.reduce_sum(rewards, 0))
+        tf.summary.histogram('future_values', future_values)
+        tf.summary.histogram('baseline_values', baseline_values)
+        tf.summary.histogram('advantages', adv)
+        tf.summary.scalar('avg_rewards',
+                          tf.reduce_mean(tf.reduce_sum(rewards, 0)))
+        tf.summary.scalar('policy_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('critic_loss',
+                          tf.reduce_mean(tf.reduce_sum(not_pad * policy_loss)))
+        tf.summary.scalar('loss', loss)
+        tf.summary.scalar('raw_loss', tf.reduce_mean(raw_loss))
+        tf.summary.scalar('eps_lambda', self.eps_lambda)
+
+        return (loss, raw_loss, future_values,
+                gradient_ops, tf.summary.merge_all())
+
+class GeneralSparsePCLV2(PCL):
+
+    def get(self, rewards, pads, values, final_values,
+            log_probs, prev_log_probs, target_log_probs,
+            entropies, logits,
+            target_values, final_target_values, actions=None):
+        assert len(logits) == 1, 'only one discrete action allowed'
+        assert actions is not None
+
+        not_pad = 1 - pads
+        time_length = tf.shape(rewards)[0]
+        batch_size = tf.shape(rewards)[1]
+        num_actions = tf.shape(logits[0])[2]
+
+        rewards = not_pad * rewards
+        value_estimates = not_pad * values[:, :, 0]
+        lambda_coefs = tf.exp(1.0 * not_pad * values[:, :, 1])
+        Lambda_sigmoid = not_pad * tf.sigmoid(values[:, :, 2])
+
+        #remove final computation
+
+        # big_o = 0.00001 * (self.q - 2)
+        big_o = 1
+
+        logits = logits[0][:-1]#/(self.k * self.q)
+        # logits = [logit[:-1] for logit in logits] #logits[:-1]  # [:-1]
+
+        tau_logits = tf.reshape(
+            spmax_tau(tf.reshape(logits, [time_length * batch_size, -1])),
+            [time_length, batch_size, 1])
+
+        pi_probs_1 = not_pad * tf.reduce_sum(
+            # tf.nn.relu(logits - tau_logits + big_o/((self.q-1)*(self.q-1))) * tf.one_hot(actions, num_actions),
+            tf.nn.relu(logits - tau_logits) * tf.one_hot(actions, num_actions),
+            -1)
+
+        pi_probs_2 = not_pad * tf.reduce_sum(
+            # tf.nn.relu(logits - tau_logits + big_o/((self.q-1)*(self.q-1))) * tf.one_hot(actions, num_actions),
+            tf.nn.relu(logits - tau_logits) * tf.one_hot(actions, num_actions),
+            -1)
+
+        lambdas = not_pad * tf.reduce_sum(
+            # tf.nn.relu(tau_logits - logits - big_o/((self.q-1)*(self.q-1))) * tf.one_hot(actions, num_actions),
+            tf.nn.relu(tau_logits - logits) * tf.one_hot(actions, num_actions),
+            -1)
+
+        Lambdas = Lambda_sigmoid * (-2 * self.tau * self.k/(self.q + 1))
+
+        # Prepend.
+        not_pad = tf.concat([tf.ones([self.rollout - 1, batch_size]),
+                             not_pad], 0)
+        rewards = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             rewards], 0)
+        value_estimates = tf.concat(
+            [self.gamma ** tf.expand_dims(
+                tf.range(float(self.rollout - 1), 0, -1), 1) *
+             tf.ones([self.rollout - 1, batch_size]) *
+             value_estimates[0:1, :],
+             value_estimates], 0)
+        lambda_coefs = tf.concat(
+            [tf.ones([self.rollout - 1, batch_size]),
+             lambda_coefs], 0)
+        pi_probs_1 = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                              pi_probs_1], 0)
+
+        pi_probs_1 = tf.pow(pi_probs_1, (self.q - 1))
+
+        pi_probs_2 = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                              pi_probs_2], 0)
+
+        pi_probs_2 = tf.pow(pi_probs_2, (self.q + 1))
+
+
+        lambdas = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             lambdas], 0)
+        Lambdas = tf.concat([tf.zeros([self.rollout - 1, batch_size]),
+                             Lambdas], 0)
+
+        sum_rewards = discounted_future_sum(rewards + self.k * self.tau / (self.q - 1), self.gamma, self.rollout)
+        sum_pi_probs_1 = discounted_future_sum(pi_probs_1, self.gamma * (self.k * self.q / (self.q - 1)), self.rollout)
+        sum_pi_probs_2 = discounted_future_sum(pi_probs_2, self.gamma * (self.k * (self.q-1) / (self.q + 1)), self.rollout)
+        sum_lambdas = discounted_future_sum(lambdas * lambda_coefs, self.gamma, self.rollout)
+        sum_Lambdas = discounted_future_sum(Lambdas, self.gamma, self.rollout)
+
+        # last_values = tf.stop_gradient(shift_values(value_estimates, self.gamma, self.rollout))
+        last_values = shift_values(value_estimates, self.gamma, self.rollout)
+
+        future_values = (
+                - self.tau * sum_pi_probs_1
+                + self.tau * sum_pi_probs_2
+                + self.tau * sum_lambdas
+                - sum_Lambdas
+                + sum_rewards + last_values)
+        baseline_values = value_estimates
+
+        adv = tf.stop_gradient(-baseline_values + future_values)
+        raw_adv = adv
+
+        policy_loss = -adv * (sum_pi_probs_1 - sum_pi_probs_2 - sum_lambdas + sum_Lambdas)
         critic_loss = -adv * (baseline_values - last_values)
 
         policy_loss = tf.reduce_mean(

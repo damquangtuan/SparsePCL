@@ -18,6 +18,7 @@
 Main point of entry for running models.  Specifies most of
 the parameters used by different algorithms.
 """
+from __future__ import division
 
 import tensorflow as tf
 import numpy as np
@@ -66,7 +67,7 @@ flags.DEFINE_string('sample_from', 'online',
                     'Sample actions from "online" network or "target" network')
 
 flags.DEFINE_string('objective', 'pcl',
-                    'pcl/upcl/a3c/trpo/reinforce/urex/tsallis')
+                    'pcl/upcl/a3c/trpo/reinforce/urex/tsallis/generaltsallis/generaltsallisv2')
 flags.DEFINE_bool('trust_region_p', False,
                   'use trust region for policy optimization')
 
@@ -97,6 +98,10 @@ flags.DEFINE_bool('update_eps_lambda', False,
                   'Update lambda automatically based on last 100 episodes.')
 flags.DEFINE_float('gamma', 1.0, 'discount')
 flags.DEFINE_integer('rollout', 10, 'rollout')
+
+flags.DEFINE_float('q', 2.0, 'value_q')
+flags.DEFINE_float('k', 0.5, 'value_k')
+
 flags.DEFINE_bool('use_target_values', False,
                   'use target network for value estimates')
 flags.DEFINE_bool('fixed_std', True,
@@ -114,7 +119,7 @@ flags.DEFINE_bool('batch_by_steps', False,
 flags.DEFINE_bool('unify_episodes', False,
                   'Make sure replay buffer holds entire episodes, '
                   'even across distinct sampling steps')
-flags.DEFINE_integer('replay_buffer_size', 5000, 'replay buffer size')
+flags.DEFINE_integer('replay_buffer_size', 10000, 'replay buffer size')
 flags.DEFINE_float('replay_buffer_alpha', 0.5, 'replay buffer alpha param')
 flags.DEFINE_integer('replay_buffer_freq', 0,
                      'replay buffer frequency (only supports -1/0/1)')
@@ -125,7 +130,7 @@ flags.DEFINE_string('prioritize_by', 'rewards',
 flags.DEFINE_integer('num_expert_paths', 0,
                      'number of expert paths to seed replay buffer with')
 
-flags.DEFINE_integer('internal_dim', 256, 'RNN internal dim')
+flags.DEFINE_integer('internal_dim', 128, 'RNN internal dim')
 flags.DEFINE_integer('value_hidden_layers', 0,
                      'number of hidden layers in value estimate')
 flags.DEFINE_integer('tf_seed', 42, 'random seed for tensorflow')
@@ -144,11 +149,16 @@ flags.DEFINE_string('master', 'local', 'name of master')
 flags.DEFINE_string('save_dir', '', 'directory to save model to')
 flags.DEFINE_string('load_path', '', 'path of saved model to load (if none in save_dir)')
 
+flags.DEFINE_string('file_to_save', '', 'The file to save the rewards')
+
+
 
 class Trainer(object):
   """Coordinates single or multi-replica training."""
 
   def __init__(self):
+
+    self.file_to_save = FLAGS.file_to_save
     self.batch_size = FLAGS.batch_size
     self.replay_batch_size = FLAGS.replay_batch_size
     if self.replay_batch_size is None:
@@ -197,6 +207,10 @@ class Trainer(object):
     self.update_eps_lambda = FLAGS.update_eps_lambda
     self.gamma = FLAGS.gamma
     self.rollout = FLAGS.rollout
+
+    self.q = FLAGS.q
+    self.k = FLAGS.k
+
     self.use_target_values = FLAGS.use_target_values
     self.fixed_std = FLAGS.fixed_std
     self.input_prev_actions = FLAGS.input_prev_actions
@@ -248,10 +262,12 @@ class Trainer(object):
               self.tau_start, self.global_step, 100, self.tau_decay),
           self.tau)
 
-    if self.objective in ['pcl', 'a3c', 'trpo', 'upcl', 'tsallis']:
+    if self.objective in ['pcl', 'a3c', 'trpo', 'upcl', 'tsallis', 'generaltsallis', 'generaltsallisv2']:
       cls = (objective.PCL if self.objective in ['pcl', 'upcl'] else
              objective.TRPO if self.objective == 'trpo' else
              objective.SparsePCL if self.objective == 'tsallis' else
+             objective.GeneralSparsePCL if self.objective == 'generaltsallis' else
+             objective.GeneralSparsePCLV2 if self.objective == 'generaltsallisv2' else
              objective.ActorCritic)
       policy_weight = 1.0
 
@@ -261,7 +277,8 @@ class Trainer(object):
                  critic_weight=self.critic_weight,
                  tau=tau, gamma=self.gamma, rollout=self.rollout,
                  eps_lambda=self.eps_lambda, clip_adv=self.clip_adv,
-                 use_target_values=self.use_target_values)
+                 use_target_values=self.use_target_values, q=self.q,
+                 k=self.k)
     elif self.objective in ['reinforce', 'urex']:
       cls = (full_episode_objective.Reinforce
              if self.objective == 'reinforce' else
@@ -281,7 +298,8 @@ class Trainer(object):
     return cls(self.env_spec, self.internal_dim,
                fixed_std=self.fixed_std,
                recurrent=self.recurrent,
-               input_prev_actions=self.input_prev_actions, tsallis=self.tsallis)
+               input_prev_actions=self.input_prev_actions, tsallis=self.tsallis,
+               q=self.q, k=self.k,tau=self.tau)
 
   def get_baseline(self):
     cls = (baseline.UnifiedBaseline if self.objective == 'upcl' else
@@ -327,7 +345,8 @@ class Trainer(object):
     if self.replay_buffer_freq <= 0:
       return None
     else:
-      assert self.objective in ['pcl', 'upcl', 'tsallis'], 'Can\'t use replay buffer with %s' % (
+      assert self.objective in ['pcl', 'upcl', 'tsallis', 'generaltsallis', 'generaltsallisv2'], \
+          'Can\'t use replay buffer with %s' % (
           self.objective)
     cls = replay_buffer.PrioritizedReplayBuffer
     return cls(self.replay_buffer_size,
@@ -433,6 +452,10 @@ class Trainer(object):
     losses = []
     rewards = []
     all_ep_rewards = []
+
+    reward_epi = np.zeros(self.num_steps + 1)
+
+
     for step in xrange(1 + self.num_steps):
 
       if sv is not None and sv.ShouldStop():
@@ -454,6 +477,9 @@ class Trainer(object):
         sv.summary_computed(sess, summary)
 
       model_step = sess.run(self.model.global_step)
+
+      reward_epi[step] = np.mean(greedy_episode_rewards)
+
       if is_chief and step % self.validation_frequency == 0:
         logging.info('at training step %d, model step %d: '
                      'avg loss %f, avg reward %f, '
@@ -475,12 +501,21 @@ class Trainer(object):
       logging.info('saving final model to %s', sv.save_path)
       sv.saver.save(sess, sv.save_path, global_step=sv.global_step)
 
+    save_data(reward_epi, self.file_to_save)
+
 
 def main(unused_argv):
   logging.set_verbosity(logging.INFO)
   trainer = Trainer()
   trainer.run()
 
+
+def save_data(reward_epi, filename):
+    # save reward_epi value matrix to a text file
+    mat = np.matrix(reward_epi)
+    with open(filename, 'wb') as f:
+        for line in mat:
+            np.savetxt(f, line, fmt='%f')
 
 if __name__ == '__main__':
   app.run()

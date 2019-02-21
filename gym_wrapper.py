@@ -18,9 +18,12 @@
 Allows for using batches of possibly identitically seeded environments.
 """
 
-import gym
 import numpy as np
 import random
+# import gym_master
+import sys
+sys.path.append('~/PycharmProjects/SparsePCL/gym_master/gym')
+import gym
 
 from six.moves import xrange
 import env_spec

@@ -19,6 +19,9 @@ Implements network which takes in input and produces actions
 and log probabilities given a sampling distribution parameterization.
 """
 
+from __future__ import division
+
+
 import tensorflow as tf
 import numpy as np
 
@@ -46,7 +49,7 @@ def spmax_tau(logits):
 class Policy(object):
   def __init__(self, env_spec, internal_dim,
                fixed_std=True, recurrent=True,
-               input_prev_actions=True, tsallis=False):
+               input_prev_actions=True, tsallis=False, q=2.0, k=0.5, tau=0.005):
     self.env_spec = env_spec
     self.internal_dim = internal_dim
     self.rnn_state_dim = self.internal_dim
@@ -55,8 +58,14 @@ class Policy(object):
     self.input_prev_actions = input_prev_actions
 
     self.matrix_init = tf.truncated_normal_initializer(stddev=0.01)
+    # self.matrix_init = tf.constant_initializer(value=0.01)
     self.vector_init = tf.constant_initializer(0.0)
     self.tsallis = tsallis
+    self.q = q
+    self.k = k
+    self.big_o = 1
+    self.tau = tau
+    # self.big_o = 0.00001 * (self.q - 2)
 
   @property
   def input_dim(self):
@@ -68,15 +77,17 @@ class Policy(object):
     return self.env_spec.total_sampling_act_dim
 
   def get_cell(self):
+    # with tf.variable_scope('rnn', initializer=tf.truncated_normal_initializer(stddev=0.01)):
     """Get RNN cell."""
     self.cell_input_dim = self.internal_dim // 2
     cell = tf.contrib.rnn.LSTMCell(self.cell_input_dim,
-                                   state_is_tuple=False,
-                                   reuse=tf.get_variable_scope().reuse)
-
-    cell = tf.contrib.rnn.OutputProjectionWrapper(
-        cell, self.output_dim,
-        reuse=tf.get_variable_scope().reuse)
+                                  state_is_tuple=False,
+                                  reuse=tf.get_variable_scope().reuse)
+    with tf.variable_scope('rnn', initializer=tf.truncated_normal_initializer(stddev=0.01)):
+    # with tf.variable_scope('rnn', initializer=tf.constant_initializer(value=0.01)):
+      cell = tf.contrib.rnn.OutputProjectionWrapper(
+          cell, self.output_dim,
+          reuse=tf.get_variable_scope().reuse)
 
     return cell
 
@@ -89,20 +100,14 @@ class Policy(object):
 
     cell = self.get_cell()
 
-    # b = tf.get_variable('input_bias', [self.cell_input_dim],
-    #                     initializer=self.vector_init)
-
     b = tf.get_variable('input_bias', [self.cell_input_dim],
-                        initializer=tf.truncated_normal_initializer(stddev=0.01))
+                        initializer=self.vector_init)
 
     cell_input = tf.nn.bias_add(tf.zeros([batch_size, self.cell_input_dim]), b)
 
     for i, (obs_dim, obs_type) in enumerate(self.env_spec.obs_dims_and_types):
-      # w = tf.get_variable('w_state%d' % i, [obs_dim, self.cell_input_dim],
-      #                     initializer=self.matrix_init)
-
       w = tf.get_variable('w_state%d' % i, [obs_dim, self.cell_input_dim],
-                          initializer=tf.truncated_normal_initializer(stddev=0.01))
+                          initializer=self.matrix_init)
 
       if self.env_spec.is_discrete(obs_type):
         cell_input += tf.matmul(tf.one_hot(obs[i], obs_dim), w)
@@ -116,21 +121,15 @@ class Policy(object):
         prev_action = prev_actions[0]
         for i, action_dim in enumerate(self.env_spec.orig_act_dims):
           act = tf.mod(prev_action, action_dim)
-          # w = tf.get_variable('w_prev_action%d' % i, [action_dim, self.cell_input_dim],
-          #                     initializer=self.matrix_init)
-
           w = tf.get_variable('w_prev_action%d' % i, [action_dim, self.cell_input_dim],
-                              initializer=tf.truncated_normal_initializer(stddev=0.01))
+                              initializer=self.matrix_init)
 
           cell_input += tf.matmul(tf.one_hot(act, action_dim), w)
           prev_action = tf.to_int32(prev_action / action_dim)
       else:
         for i, (act_dim, act_type) in enumerate(self.env_spec.act_dims_and_types):
-          # w = tf.get_variable('w_prev_action%d' % i, [act_dim, self.cell_input_dim],
-          #                     initializer=self.matrix_init)
-
           w = tf.get_variable('w_prev_action%d' % i, [act_dim, self.cell_input_dim],
-                              initializer=tf.truncated_normal_initializer(stddev=0.01))
+                              initializer=self.matrix_init)
 
           if self.env_spec.is_discrete(act_type):
             cell_input += tf.matmul(tf.one_hot(prev_actions[i], act_dim), w)
@@ -150,6 +149,9 @@ class Policy(object):
       if greedy:
         act = tf.argmax(logits, 1)
       elif self.tsallis:
+        # logits = logits/(self.q * self.k)
+
+        # probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1) + self.big_o/((self.q-1)*(self.q-1)))
         probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1))
         dist = tf.distributions.Categorical(probs=probs)
         act = dist.sample([])
@@ -217,6 +219,8 @@ class Policy(object):
     """Calculate log-prob of action sampled from distribution."""
     if self.env_spec.is_discrete(act_type):
       if self.tsallis:
+        # logits = logits / (self.q * self.k)
+        # probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1)  + self.big_o/((self.q-1)*(self.q-1)))
         probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1))
         act_log_prob = tf.reduce_sum(
           tf.one_hot(action, act_dim) * tf.log(1e-6 + probs), -1)
@@ -269,6 +273,8 @@ class Policy(object):
       act_log_prob = self.log_prob_action(
           act, act_logits,
           sampling_dim, act_dim, act_type)
+
+      act_logits = act_logits / (self.k * self.q * self.tau)
 
       sampled_actions.append(act)
       logits.append(act_logits)
@@ -355,9 +361,6 @@ class Policy(object):
     log_probs = [log_prob[:-1] for log_prob in log_probs]
     entropies = [entropy[:-1] for entropy in entropies]
     self_kls = [self_kl[:-1] for self_kl in self_kls]
-
-    #tuan added
-    # logits = [logit[:-1] for logit in logits]
 
     return internal_states, logits, log_probs, entropies, self_kls
 
