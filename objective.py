@@ -697,8 +697,8 @@ class GeneralSparsePCLV2(PCL):
                              Lambdas], 0)
 
         sum_rewards = discounted_future_sum(rewards + self.k * self.tau / (self.q - 1), self.gamma, self.rollout)
-        sum_pi_probs_1 = discounted_future_sum(pi_probs_1, self.gamma * (self.k * self.q / (self.q - 1)), self.rollout)
-        sum_pi_probs_2 = discounted_future_sum(pi_probs_2, self.gamma * (self.k * (self.q-1) / (self.q + 1)), self.rollout)
+        sum_pi_probs_1 = discounted_future_sum(pi_probs_1, self.gamma, self.rollout)
+        sum_pi_probs_2 = discounted_future_sum(pi_probs_2, self.gamma, self.rollout)
         sum_lambdas = discounted_future_sum(lambdas * lambda_coefs, self.gamma, self.rollout)
         sum_Lambdas = discounted_future_sum(Lambdas, self.gamma, self.rollout)
 
@@ -706,9 +706,9 @@ class GeneralSparsePCLV2(PCL):
         last_values = shift_values(value_estimates, self.gamma, self.rollout)
 
         future_values = (
-                - self.tau * sum_pi_probs_1
-                + self.tau * sum_pi_probs_2
-                + self.tau * sum_lambdas
+                - ((self.tau * (self.k * self.q)) / (self.q - 1)) * sum_pi_probs_1
+                + ((self.tau * self.k * (self.q-1)) / (self.q + 1)) * sum_pi_probs_2
+                + (self.tau * self.k) * sum_lambdas
                 - sum_Lambdas
                 + sum_rewards + last_values)
         baseline_values = value_estimates

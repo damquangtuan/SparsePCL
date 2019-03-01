@@ -58,8 +58,8 @@ class Policy(object):
     self.input_prev_actions = input_prev_actions
 
     self.matrix_init = tf.truncated_normal_initializer(stddev=0.01)
-    # self.matrix_init = tf.constant_initializer(value=0.01)
-    self.vector_init = tf.constant_initializer(0.0)
+    # self.matrix_init = tf.constant_initializer(value=0.001)
+    self.vector_init = tf.constant_initializer(value=0.0)
     self.tsallis = tsallis
     self.q = q
     self.k = k
@@ -84,7 +84,7 @@ class Policy(object):
                                   state_is_tuple=False,
                                   reuse=tf.get_variable_scope().reuse)
     with tf.variable_scope('rnn', initializer=tf.truncated_normal_initializer(stddev=0.01)):
-    # with tf.variable_scope('rnn', initializer=tf.constant_initializer(value=0.01)):
+    # with tf.variable_scope('rnn', initializer=tf.constant_initializer(value=0.001)):
       cell = tf.contrib.rnn.OutputProjectionWrapper(
           cell, self.output_dim,
           reuse=tf.get_variable_scope().reuse)
@@ -219,7 +219,7 @@ class Policy(object):
     """Calculate log-prob of action sampled from distribution."""
     if self.env_spec.is_discrete(act_type):
       if self.tsallis:
-        # logits = logits / (self.q * self.k)
+        # logits = logits * 1000
         # probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1)  + self.big_o/((self.q-1)*(self.q-1)))
         probs = tf.nn.relu(logits - tf.expand_dims(spmax_tau(logits), 1))
         act_log_prob = tf.reduce_sum(
@@ -275,6 +275,8 @@ class Policy(object):
           sampling_dim, act_dim, act_type)
 
       act_logits = act_logits / (self.k * self.q * self.tau)
+
+      # act_logits = act_logits * 10
 
       sampled_actions.append(act)
       logits.append(act_logits)
