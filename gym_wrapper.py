@@ -24,6 +24,7 @@ import random
 import sys
 sys.path.append('~/PycharmProjects/SparsePCL/gym_master/gym')
 import gym
+# import mujoco_py
 
 from six.moves import xrange
 import env_spec

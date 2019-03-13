@@ -19,6 +19,6 @@ source ~/.venv2/bin/activate
 
 cd ~/Workspace/SparsePC
 
-echo "Not joint ${SLURM_JOB_ID} ${1} ${2} ${3}" >> /home/qd34dado/experiments.txt
+echo "Not joint ${SLURM_JOB_ID} ${1} ${2} ${3} ${4}" >> /home/qd34dado/experiments.txt
 
 python python2 trainer.py --logtostderr --batch_size=400 --env=${1} --validation_frequency=25 --tau=${3} --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.01 --tsallis=True --q=2.0 --k=1.0 --num_steps={2} --file_to_save='results/${1}_20_q_2_tau_${3}_learning_rate_0.01.txt'

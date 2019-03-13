@@ -1,0 +1,9 @@
+python2 trainer.py --logtostderr --batch_size=400 --env=Copy-v0 --validation_frequency=25 --tau=0.1 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.005 --tsallis=True --q=2.0 --k=0.65 --num_steps=10000 --file_to_save=generaltsallisv2_2_65_80_copy1.txt
+
+python2 trainer.py --logtostderr --batch_size=400 --env=Copy-v0 --validation_frequency=25 --tau=0.1 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.005 --tsallis=True --q=2.0 --k=0.65 --num_steps=10000 --file_to_save=generaltsallisv2_2_65_80_copy2.txt
+
+python2 trainer.py --logtostderr --batch_size=400 --env=Copy-v0 --validation_frequency=25 --tau=0.1 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.005 --tsallis=True --q=2.0 --k=0.65 --num_steps=10000 --file_to_save=generaltsallisv2_2_65_80_copy3.txt
+
+python2 trainer.py --logtostderr --batch_size=400 --env=Copy-v0 --validation_frequency=25 --tau=0.1 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.005 --tsallis=True --q=2.0 --k=0.65 --num_steps=10000 --file_to_save=generaltsallisv2_2_65_80_copy4.txt
+
+python2 trainer.py --logtostderr --batch_size=400 --env=Copy-v0 --validation_frequency=25 --tau=0.1 --rollout=10 --critic_weight=1.0 --gamma=0.9 --clip_norm=10 --replay_buffer_freq=1 --objective=generaltsallisv2 --learning_rate=0.005 --tsallis=True --q=2.0 --k=0.65 --num_steps=10000 --file_to_save=generaltsallisv2_2_65_80_copy5.txt
