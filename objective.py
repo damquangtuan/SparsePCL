@@ -42,7 +42,7 @@ class Objective(object):
       grads, global_norm = tf.clip_by_global_norm(grads, self.clip_norm)
       tf.summary.scalar('grad_global_norm', global_norm)
 
-    return opt.apply_gradients(zip(grads, params))
+    return opt.apply_gradients(list(zip(grads, params)))
 
   def get(self, rewards, pads, values, final_values,
           log_probs, prev_log_probs, target_log_probs,

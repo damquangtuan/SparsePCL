@@ -107,7 +107,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
           idx += 1
     else:
       assert len(new_idxs) == len(episodes)
-      for new_idx, ep in zip(new_idxs, episodes):
+      for new_idx, ep in list(zip(new_idxs, episodes)):
         self.buffer[new_idx] = ep
 
     self.priorities[new_idxs] = priorities

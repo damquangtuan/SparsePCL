@@ -147,7 +147,7 @@ def sample_expert_path(env_str, env_spec):
       for act in actions]
   observations.append([chars])
 
-  observations = [np.array(obs) for obs in zip(*observations)]
-  actions = [np.array(act) for act in zip(*actions)]
+  observations = [np.array(obs) for obs in list(zip(*observations))]
+  actions = [np.array(act) for act in list(zip(*actions))]
   rewards = np.array(rewards)
   return [observations, actions, rewards, True]

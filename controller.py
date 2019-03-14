@@ -204,8 +204,8 @@ class Controller(object):
        observations, actions, rewards,
        pads) = self._sample_episodes(sess, greedy=greedy)
 
-      observations = zip(*observations)
-      actions = zip(*actions)
+      observations = list(zip(*observations))
+      actions = list(zip(*actions))
 
       terminated = np.array(self.env.dones)
 
@@ -376,7 +376,7 @@ class Controller(object):
     max_length = max_length or max(lengths)
 
     new_episodes = []
-    for ep, length in zip(episodes, lengths):
+    for ep, length in list(zip(episodes, lengths)):
       initial, observations, actions, rewards, terminated = ep
       observations = [np.resize(obs, [max_length + 1] + list(obs.shape)[1:])
                       for obs in observations]
@@ -388,11 +388,11 @@ class Controller(object):
                            terminated, pads])
 
     (initial, observations, actions, rewards,
-     terminated, pads) = zip(*new_episodes)
+     terminated, pads) = list(zip(*new_episodes))
     observations = [np.swapaxes(obs, 0, 1)
-                    for obs in zip(*observations)]
+                    for obs in list(zip(*observations))]
     actions = [np.swapaxes(act, 0, 1)
-               for act in zip(*actions)]
+               for act in list(zip(*actions))]
     rewards = np.transpose(rewards)
     pads = np.transpose(pads)
 

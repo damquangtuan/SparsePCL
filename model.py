@@ -26,7 +26,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-
 class Model(object):
 
   def __init__(self, env_spec, global_step,
@@ -175,7 +174,7 @@ class Model(object):
       aa = self.target_network_lag
       self.copy_op = tf.group(*[
           target_p.assign(aa * target_p + (1 - aa) * online_p)
-          for online_p, target_p in zip(online_vars, target_vars)])
+          for online_p, target_p in list(zip(online_vars, target_vars))])
 
       if train:
         # evaluate objective
@@ -244,9 +243,9 @@ class Model(object):
       outputs = [self.next_internal_state, self.sampled_actions]
 
     feed_dict = {self.internal_state: internal_state}
-    for action_place, action in zip(self.single_action, single_action):
+    for action_place, action in list(zip(self.single_action, single_action)):
       feed_dict[action_place] = action
-    for obs_place, obs in zip(self.single_observation, single_observation):
+    for obs_place, obs in list(zip(self.single_observation, single_observation)):
       feed_dict[obs_place] = obs
 
     return sess.run(outputs, feed_dict=feed_dict)
@@ -264,16 +263,16 @@ class Model(object):
                  self.avg_episode_reward: avg_episode_reward,
                  self.greedy_episode_reward: greedy_episode_reward}
     time_len = None
-    for action_place, action in zip(self.actions, actions):
+    for action_place, action in list(zip(self.actions, actions)):
       if time_len is None:
         time_len = len(action)
       assert time_len == len(action)
       feed_dict[action_place] = action
-    for obs_place, obs in zip(self.observations, observations):
+    for obs_place, obs in list(zip(self.observations, observations)):
       assert time_len == len(obs)
       feed_dict[obs_place] = obs
 
-    assert len(rewards) == time_len - 1
+    #assert len(rewards) == time_len - 1
 
     return sess.run(outputs, feed_dict=feed_dict)
 
@@ -290,15 +289,15 @@ class Model(object):
                  self.pads: pads,
                  self.avg_episode_reward: avg_episode_reward,
                  self.greedy_episode_reward: greedy_episode_reward}
-    for action_place, action in zip(self.actions, actions):
+    for action_place, action in list(zip(self.actions, actions)):
       feed_dict[action_place] = action
-    for obs_place, obs in zip(self.observations, observations):
+    for obs_place, obs in list(zip(self.observations, observations)):
       feed_dict[obs_place] = obs
 
     (prev_log_probs, prev_logits) = sess.run(
         [self.out_log_probs, self.logits], feed_dict=feed_dict)
     feed_dict[self.prev_log_probs] = prev_log_probs
-    for other_logit, prev_logit in zip(self.other_logits, prev_logits):
+    for other_logit, prev_logit in list(zip(self.other_logits, prev_logits)):
       feed_dict[other_logit] = prev_logit
 
     # fit policy
@@ -316,9 +315,9 @@ class Model(object):
                  self.rewards: rewards,
                  self.terminated: terminated,
                  self.pads: pads}
-    for action_place, action in zip(self.actions, actions):
+    for action_place, action in list(zip(self.actions, actions)):
       feed_dict[action_place] = action
-    for obs_place, obs in zip(self.observations, observations):
+    for obs_place, obs in list(zip(self.observations, observations)):
       feed_dict[obs_place] = obs
 
     # fit values

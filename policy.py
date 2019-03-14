@@ -460,7 +460,7 @@ class MLPPolicy(Policy):
 
     # first reshape inputs as a single batch
     reshaped_obs = []
-    for obs, (obs_dim, obs_type) in zip(all_obs, self.env_spec.obs_dims_and_types):
+    for obs, (obs_dim, obs_type) in list(zip(all_obs, self.env_spec.obs_dims_and_types)):
       if self.env_spec.is_discrete(obs_type):
         reshaped_obs.append(tf.reshape(obs, [time_length * batch_size]))
       elif self.env_spec.is_box(obs_type):

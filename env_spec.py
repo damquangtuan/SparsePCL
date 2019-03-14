@@ -37,7 +37,7 @@ def get_space(space):
 
 def get_spaces(spaces):
   if hasattr(spaces, 'spaces'):
-    return zip(*[get_space(space) for space in spaces.spaces])
+    return list(zip(*[get_space(space) for space in spaces.spaces]))
   else:
     return [(ret,) for ret in get_space(spaces)]
 
@@ -61,7 +61,7 @@ class EnvSpec(object):
       self._act_types = self.act_types[:]
       self.act_dims = []
       self.act_types = []
-      for i, (dim, typ) in enumerate(zip(self._act_dims, self._act_types)):
+      for i, (dim, typ) in enumerate(list(zip(self._act_dims, self._act_types))):
         if typ == spaces.discrete:
           self.act_dims.append(dim)
           self.act_types.append(spaces.discrete)
@@ -86,8 +86,8 @@ class EnvSpec(object):
     else:
       self.combine_actions = False
 
-    self.obs_dims_and_types = tuple(zip(self.obs_dims, self.obs_types))
-    self.act_dims_and_types = tuple(zip(self.act_dims, self.act_types))
+    self.obs_dims_and_types = tuple(list(zip(self.obs_dims, self.obs_types)))
+    self.act_dims_and_types = tuple(list(zip(self.act_dims, self.act_types)))
 
     self.total_obs_dim = sum(self.obs_dims)
     self.total_sampling_act_dim = sum(self.sampling_dim(dim, typ)
@@ -114,7 +114,7 @@ class EnvSpec(object):
     if self.discretize_actions:
       new_actions = []
       idx = 0
-      for i, (dim, typ) in enumerate(zip(self._act_dims, self._act_types)):
+      for i, (dim, typ) in enumerate(list(zip(self._act_dims, self._act_types))):
         if typ == spaces.discrete:
           new_actions.append(actions[idx])
           idx += 1
@@ -137,7 +137,7 @@ class EnvSpec(object):
 
     new_actions = 0
     base = 1
-    for act, dim in zip(actions, self.orig_act_dims):
+    for act, dim in list(zip(actions, self.orig_act_dims)):
       new_actions = new_actions + base * act
       base *= dim
 
@@ -175,7 +175,7 @@ class EnvSpec(object):
     if batched:
       return obs
     else:
-      return zip(*obs)[0]
+      return list(zip(*obs))[0]
 
   def initial_act(self, batch_size=None):
     batched = batch_size is not None
@@ -191,7 +191,7 @@ class EnvSpec(object):
     if batched:
       return act
     else:
-      return zip(*act)[0]
+      return list(zip(*act))[0]
 
   def is_discrete(self, typ):
     return typ == spaces.discrete

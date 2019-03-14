@@ -36,12 +36,12 @@ def var_size(v):
 def gradients(loss, var_list):
   grads = tf.gradients(loss, var_list)
   return [g if g is not None else tf.zeros(v.shape)
-          for g, v in zip(grads, var_list)]
+          for g, v in list(zip(grads, var_list))]
 
 def flatgrad(loss, var_list):
   grads = gradients(loss, var_list)
   return tf.concat([tf.reshape(grad, [-1])
-                    for (v, grad) in zip(var_list, grads)
+                    for (v, grad) in list(zip(var_list, grads))
                     if grad is not None], 0)
 
 
@@ -56,7 +56,7 @@ def set_from_flat(var_list, flat_theta):
 
   start = 0
   assigns = []
-  for (shape, size, v) in zip(shapes, sizes, var_list):
+  for (shape, size, v) in list(zip(shapes, sizes, var_list)):
     assigns.append(v.assign(
         tf.reshape(flat_theta[start:start + size], shape)))
     start += size
@@ -89,14 +89,14 @@ class TrustRegionOptimization(object):
 
     start = 0
     tangents = []
-    for shape, size in zip(shapes, sizes):
+    for shape, size in list(zip(shapes, sizes)):
       param = tf.reshape(self.flat_tangent[start:start + size], shape)
       tangents.append(param)
       start += size
     assert start == sum(sizes)
 
     self.grad_vector_product = sum(
-        tf.reduce_sum(g * t) for (g, t) in zip(self.divergence_gradient, tangents))
+        tf.reduce_sum(g * t) for (g, t) in list(zip(self.divergence_gradient, tangents)))
     self.fisher_vector_product = flatgrad(self.grad_vector_product, var_list)
 
     self.flat_vars = get_flat(var_list)
