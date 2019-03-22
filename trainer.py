@@ -119,7 +119,7 @@ flags.DEFINE_bool('batch_by_steps', False,
 flags.DEFINE_bool('unify_episodes', False,
                   'Make sure replay buffer holds entire episodes, '
                   'even across distinct sampling steps')
-flags.DEFINE_integer('replay_buffer_size', 10000, 'replay buffer size')
+flags.DEFINE_integer('replay_buffer_size', 80000, 'replay buffer size')
 flags.DEFINE_float('replay_buffer_alpha', 0.5, 'replay buffer alpha param')
 flags.DEFINE_integer('replay_buffer_freq', 0,
                      'replay buffer frequency (only supports -1/0/1)')
